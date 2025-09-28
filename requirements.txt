@@ -1,6 +1,6 @@
 streamlit
 pandas
-sentence-transformers
 sqlite3
 scikit-learn
 numpy
+sentence-transformers
