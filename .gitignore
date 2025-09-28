@@ -1,0 +1,49 @@
+# Entornos virtuales
+venv/
+env/
+ENV/
+.env/
+.venv/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch y modelos grandes (no subir)
+.pytorch/
+models/
+*.pth
+*.bin
+*.h5
+
+# Streamlit
+.streamlit/
+
+# Base de datos (si es grande)
+*.db
+*.sqlite3
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
