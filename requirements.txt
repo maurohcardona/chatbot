@@ -2,3 +2,4 @@ streamlit
 transformers
 torch
 sentencepiece
+googletrans==4.0.0-rc1
