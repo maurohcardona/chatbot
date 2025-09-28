@@ -1,5 +1,6 @@
-streamlit==1.28.2
-pandas==2.0.3
-numpy==1.24.3
-scikit-learn==1.3.0
+streamlit
+pandas
+sentence-transformers
 sqlite3
+scikit-learn
+numpy
