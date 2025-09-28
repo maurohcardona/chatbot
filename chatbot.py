@@ -1,6 +1,6 @@
 import sqlite3
 import streamlit as st
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 # -----------------------------
 # Conexión a SQLite
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS empleados (
 conexion.commit()
 
 # -----------------------------
-# Cargar modelo de Hugging Face
+# Cargar modelo Hugging Face
 # -----------------------------
-@st.cache_resource  # evita recargar el modelo en cada interacción
+@st.cache_resource
 def cargar_modelo():
     modelo = "google/flan-t5-small"
     tokenizer = AutoTokenizer.from_pretrained(modelo)
@@ -34,31 +34,52 @@ tokenizer, model = cargar_modelo()
 # Función para generar SQL
 # -----------------------------
 def generar_sql(pregunta):
-    prompt = f"Convierte esta pregunta en español a SQL para SQLite: {pregunta}"
+    prompt = f"""
+Eres un asistente que convierte preguntas en español a consultas SQL para SQLite.
+Base de datos: empleados(id, nombre, puesto, salario)
+Instrucciones: Devuelve SOLO la consulta SQL, sin explicaciones.
+La consulta puede ser SELECT, INSERT o UPDATE según corresponda a la pregunta.
+
+Pregunta: {pregunta}
+"""
     inputs = tokenizer(prompt, return_tensors="pt")
     outputs = model.generate(**inputs, max_new_tokens=128)
     sql = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return sql
 
 # -----------------------------
+# Función para validar SQL
+# -----------------------------
+def validar_sql(sql):
+    # Evitar ejecutar comandos peligrosos
+    sql = sql.strip().lower()
+    if sql.startswith(("select", "insert", "update")):
+        return True
+    return False
+
+# -----------------------------
 # Interfaz Streamlit
 # -----------------------------
 st.title("🤖 Chatbot con IA + SQLite")
 
-pregunta = st.text_input("Escribí tu consulta:")
+pregunta = st.text_input("Escribí tu consulta (SELECT, INSERT, UPDATE):")
 
 if pregunta:
     sql = generar_sql(pregunta)
     st.write(f"🔎 SQL generado: `{sql}`")
 
-    try:
-        cursor.execute(sql)
-        resultados = cursor.fetchall()
-        if resultados:
-            st.write("📊 Resultados:")
-            for fila in resultados:
-                st.write(fila)
-        else:
-            st.write("⚠️ No se encontraron resultados.")
-    except Exception as e:
-        st.error(f"Error al ejecutar la consulta: {e}")
+    if validar_sql(sql):
+        try:
+            cursor.execute(sql)
+            conexion.commit()
+            resultados = cursor.fetchall()
+            if resultados:
+                st.write("📊 Resultados:")
+                for fila in resultados:
+                    st.write(fila)
+            else:
+                st.write("✅ Consulta ejecutada correctamente.")
+        except Exception as e:
+            st.error(f"Error al ejecutar la consulta: {e}")
+    else:
+        st.error("❌ SQL no permitido o inválido")
