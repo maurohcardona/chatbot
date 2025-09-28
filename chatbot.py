@@ -1,7 +1,6 @@
 import sqlite3
 import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from googletrans import Translator  # Para traducir español -> inglés
 
 # -----------------------------
 # Conexión a SQLite
@@ -20,12 +19,7 @@ CREATE TABLE IF NOT EXISTS empleados (
 conexion.commit()
 
 # -----------------------------
-# Traductor español -> inglés
-# -----------------------------
-translator = Translator()
-
-# -----------------------------
-# Cargar modelo Hugging Face Text-to-SQL
+# Cargar modelo Text-to-SQL
 # -----------------------------
 @st.cache_resource
 def cargar_modelo():
@@ -37,13 +31,15 @@ def cargar_modelo():
 tokenizer, model = cargar_modelo()
 
 # -----------------------------
-# Función para generar SQL
+# Función para generar SQL desde español
 # -----------------------------
-def generar_sql(pregunta_en_ingles):
+def generar_sql(pregunta):
     prompt = f"""
-Generate a valid SQLite query for the following question: {pregunta_en_ingles}
-The table available is: empleados(id, nombre, puesto, salario)
-Return only the SQL query.
+La pregunta está en español. Genera una consulta SQL válida para SQLite
+basada en esta pregunta. La tabla disponible es: empleados(id, nombre, puesto, salario)
+Devuelve SOLO la consulta SQL.
+
+Pregunta: {pregunta}
 """
     inputs = tokenizer(prompt, return_tensors="pt")
     outputs = model.generate(**inputs, max_new_tokens=128)
@@ -67,11 +63,8 @@ st.title("🤖 Chatbot con IA + SQLite (preguntas en español)")
 pregunta = st.text_input("Escribí tu consulta:")
 
 if pregunta:
-    # Traducir pregunta al inglés
-    pregunta_en_ingles = translator.translate(pregunta, src='es', dest='en').text
-
     # Generar SQL con IA
-    sql = generar_sql(pregunta_en_ingles)
+    sql = generar_sql(pregunta)
     st.write(f"🔎 SQL generado: `{sql}`")
 
     # Ejecutar SQL si es válido
