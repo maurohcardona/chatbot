@@ -2,10 +2,8 @@ import sqlite3
 import streamlit as st
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# -----------------------------
 # Conexión a SQLite
-# -----------------------------
-conexion = sqlite3.connect("./empresa.db")
+conexion = sqlite3.connect("empresa.db")
 cursor = conexion.cursor()
 
 cursor.execute("""
@@ -18,21 +16,17 @@ CREATE TABLE IF NOT EXISTS empleados (
 """)
 conexion.commit()
 
-# -----------------------------
 # Cargar modelo Hugging Face
-# -----------------------------
 @st.cache_resource
 def cargar_modelo():
-    modelo = "Salesforce/codet5-small"
+    modelo = "tscholak/1zha5ono"
     tokenizer = AutoTokenizer.from_pretrained(modelo)
     model = AutoModelForSeq2SeqLM.from_pretrained(modelo)
     return tokenizer, model
 
 tokenizer, model = cargar_modelo()
 
-# -----------------------------
 # Función para generar SQL desde español
-# -----------------------------
 def generar_sql(pregunta):
     prompt = f"""
 La pregunta está en español. Genera una consulta SQL válida para SQLite 
@@ -45,18 +39,14 @@ Devuelve SOLO la consulta SQL.
     sql = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return sql
 
-# -----------------------------
 # Validación básica de SQL
-# -----------------------------
 def validar_sql(sql):
     sql = sql.strip().lower()
     if sql.startswith(("select", "insert", "update")):
         return True
     return False
 
-# -----------------------------
 # Interfaz Streamlit
-# -----------------------------
 st.title("🤖 Chatbot con IA + SQLite (preguntas en español)")
 
 pregunta = st.text_input("Escribí tu consulta:")
