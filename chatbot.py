@@ -1,8 +1,11 @@
 import sqlite3
 import streamlit as st
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-# Conectar base de datos
-conexion = sqlite3.connect("empresa.db")
+# -----------------------------
+# Conexión a SQLite
+# -----------------------------
+conexion = sqlite3.connect("./empresa.db")
 cursor = conexion.cursor()
 
 cursor.execute("""
@@ -15,31 +18,47 @@ CREATE TABLE IF NOT EXISTS empleados (
 """)
 conexion.commit()
 
-# Agregar datos de ejemplo si la tabla está vacía
-cursor.execute("SELECT COUNT(*) FROM empleados")
-if cursor.fetchone()[0] == 0:
-    empleados = [
-        ("Ana", "Ingeniera", 75000),
-        ("Juan", "Técnico", 45000),
-        ("María", "Analista", 60000),
-        ("Pedro", "Gerente", 90000)
-    ]
-    cursor.executemany("INSERT INTO empleados (nombre, puesto, salario) VALUES (?, ?, ?)", empleados)
-    conexion.commit()
+# -----------------------------
+# Cargar modelo de Hugging Face
+# -----------------------------
+@st.cache_resource  # evita recargar el modelo en cada interacción
+def cargar_modelo():
+    modelo = "google/flan-t5-small"
+    tokenizer = AutoTokenizer.from_pretrained(modelo)
+    model = AutoModelForSeq2SeqLM.from_pretrained(modelo)
+    return tokenizer, model
 
-st.title("Chatbot con IA y SQLite")
+tokenizer, model = cargar_modelo()
+
+# -----------------------------
+# Función para generar SQL
+# -----------------------------
+def generar_sql(pregunta):
+    prompt = f"Convierte esta pregunta en español a SQL para SQLite: {pregunta}"
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(**inputs, max_new_tokens=128)
+    sql = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return sql
+
+# -----------------------------
+# Interfaz Streamlit
+# -----------------------------
+st.title("🤖 Chatbot con IA + SQLite")
 
 pregunta = st.text_input("Escribí tu consulta:")
 
 if pregunta:
-    # Por ahora simulamos la IA con reglas simples
-    if "mayor salario" in pregunta.lower():
-        cursor.execute("SELECT nombre, puesto, salario FROM empleados ORDER BY salario DESC LIMIT 1")
-    elif "todos" in pregunta.lower():
-        cursor.execute("SELECT nombre, puesto, salario FROM empleados")
-    else:
-        cursor.execute("SELECT nombre, puesto, salario FROM empleados")
-    
-    resultados = cursor.fetchall()
-    for fila in resultados:
-        st.write(fila)
+    sql = generar_sql(pregunta)
+    st.write(f"🔎 SQL generado: `{sql}`")
+
+    try:
+        cursor.execute(sql)
+        resultados = cursor.fetchall()
+        if resultados:
+            st.write("📊 Resultados:")
+            for fila in resultados:
+                st.write(fila)
+        else:
+            st.write("⚠️ No se encontraron resultados.")
+    except Exception as e:
+        st.error(f"Error al ejecutar la consulta: {e}")
