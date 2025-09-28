@@ -23,7 +23,7 @@ conexion.commit()
 # -----------------------------
 @st.cache_resource
 def cargar_modelo():
-    modelo = "google/flan-t5-small"
+    modelo = "Salesforce/codet5-small"
     tokenizer = AutoTokenizer.from_pretrained(modelo)
     model = AutoModelForSeq2SeqLM.from_pretrained(modelo)
     return tokenizer, model
@@ -31,16 +31,14 @@ def cargar_modelo():
 tokenizer, model = cargar_modelo()
 
 # -----------------------------
-# Función para generar SQL
+# Función para generar SQL desde español
 # -----------------------------
 def generar_sql(pregunta):
     prompt = f"""
-Eres un asistente que convierte preguntas en español a consultas SQL para SQLite.
-Base de datos: empleados(id, nombre, puesto, salario)
-Instrucciones: Devuelve SOLO la consulta SQL, sin explicaciones.
-La consulta puede ser SELECT, INSERT o UPDATE según corresponda a la pregunta.
-
+La pregunta está en español. Genera una consulta SQL válida para SQLite 
+basada en esta pregunta. La tabla disponible es empleados(id, nombre, puesto, salario).
 Pregunta: {pregunta}
+Devuelve SOLO la consulta SQL.
 """
     inputs = tokenizer(prompt, return_tensors="pt")
     outputs = model.generate(**inputs, max_new_tokens=128)
@@ -48,10 +46,9 @@ Pregunta: {pregunta}
     return sql
 
 # -----------------------------
-# Función para validar SQL
+# Validación básica de SQL
 # -----------------------------
 def validar_sql(sql):
-    # Evitar ejecutar comandos peligrosos
     sql = sql.strip().lower()
     if sql.startswith(("select", "insert", "update")):
         return True
@@ -60,9 +57,9 @@ def validar_sql(sql):
 # -----------------------------
 # Interfaz Streamlit
 # -----------------------------
-st.title("🤖 Chatbot con IA + SQLite")
+st.title("🤖 Chatbot con IA + SQLite (preguntas en español)")
 
-pregunta = st.text_input("Escribí tu consulta (SELECT, INSERT, UPDATE):")
+pregunta = st.text_input("Escribí tu consulta:")
 
 if pregunta:
     sql = generar_sql(pregunta)
